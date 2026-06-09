@@ -1,0 +1,11 @@
+benchmark,dsl_loc,generated_mpi_sycl_loc,handwritten_baseline_loc,gen_over_dsl,base_over_dsl
+matMul,44,266,111,6.0,2.5
+gradientSum,70,413,157,5.9,2.2
+decay,74,317,190,4.3,2.6
+mdp,80,264,167,3.3,2.1
+liuliang,82,268,170,3.3,2.1
+monteCarloOption,86,268,176,3.1,2.0
+mandel,96,215,167,2.2,1.7
+DFT,100,286,152,2.9,1.5
+stencil,100,560,263,5.6,2.6
+waveEquation,100,422,261,4.2,2.6

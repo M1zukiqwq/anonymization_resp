@@ -1,0 +1,80 @@
+From: operator-residency ablation reproduction
+Subject: Name the legacy data-reconstruction kernels so the vendor SYCL accepts them
+
+The operator-residency "OFF" variant (translated with --mpi-no-operator-resident)
+falls back to the legacy gather/scatter path, which includes DataReconstructor1.h.
+Two problems stop the vendor swsycl (Intel-LLVM based) from building it:
+
+  1. Three `parallel_for(...)` launches carry NO kernel name. swsycl rejects
+     unnamed lambdas ("No kernel name provided without -fsycl-unnamed-lambda").
+  2. TWO different kernels share the name `class MyKernel4`. The duplicate makes
+     the generated SYCL integration header emit conflicting `KernelInfoData`
+     specializations ("'KernelInfoData' is not a class template"). This is the
+     root cause that survives naming only the three unnamed kernels.
+
+Fix: forward-declare five unique, template-dependent kernel-name tags and attach
+one to each launch. Behavior is unchanged (a kernel name is metadata only).
+
+Apply against the shared runtime header as an overlay (compile the OFF variant
+with `-I<overlay_dir> -I<runtime>` so the patched copy wins). Do NOT edit the
+shared runtime in place.
+
+--- a/runtime/DataReconstructor1.h
++++ b/runtime/DataReconstructor1.h
+@@ -43,6 +43,11 @@
+ template <typename T> struct ReconstructBufferKernel;
+ template <typename T> struct UpdateDataUSMKernel;
+ template <typename T> struct UpdateDataBufferKernel;
++template <typename T> struct DacOffIdxK;
++template <typename T> struct DacOffNdK;
++template <typename T> struct DacOffBufK;
++template <typename T> struct DacOffUpdateUSMK;
++template <typename T> struct DacOffUpdateBufK;
+
+ template<typename ImplType>
+ class DataReconstructor{
+@@ -205,7 +210,7 @@
+                 auto prefix_acc = prefix_buf.template get_access<sycl::access::mode::read>(h);
+                 auto myIdx_acc = this->myIdxBuffer.template get_access<sycl::access::mode::write>(h);
+
+-                h.parallel_for(sycl::range<1>(global), [=](sycl::id<1> gid) {
++                h.parallel_for<DacOffIdxK<ImplType>>(sycl::range<1>(global), [=](sycl::id<1> gid) {
+                     size_t g = gid[0];
+                     int b = (int)(g / (size_t)maxRegionElems);
+                     int local = (int)(g % (size_t)maxRegionElems);
+@@ -571,7 +576,7 @@
+             sycl::range<3> global(1, 1, (Item_Size <= max_global_size) ? Item_Size : work_group_size * max_global_size);
+             q.submit([&](handler &h) {
+                 auto myIdxAccessor = myIdxBuffer.get_access<sycl::access::mode::read>(h);
+-                h.parallel_for(sycl::nd_range<3>(global, local),[=](sycl::nd_item<3> item) {
++                h.parallel_for<DacOffNdK<ImplType>>(sycl::nd_range<3>(global, local),[=](sycl::nd_item<3> item) {
+                     const auto item_id = item.get_group(2)*item.get_local_range(2)+item.get_local_id(2);
+                     if(item_id >= Item_Size)
+                         return;
+@@ -595,7 +600,7 @@
+                 auto myIdx_acc = this->myIdxBuffer.template get_access<sycl::access::mode::read>(h);
+                 auto myTensor_acc = myTensor_buf.template get_access<sycl::access::mode::read>(h);
+                 auto res_acc = res_buf.template get_access<sycl::access::mode::write>(h);
+-                h.parallel_for(sycl::nd_range<3>(global, local), [=](sycl::nd_item<3> item) {
++                h.parallel_for<DacOffBufK<ImplType>>(sycl::nd_range<3>(global, local), [=](sycl::nd_item<3> item) {
+                     size_t item_id = item.get_group(2) * item.get_local_range(2) + item.get_local_id(2);
+                     if (item_id >= (size_t)Item_Size) return;
+
+@@ -671,7 +676,7 @@
+             sycl::range<2> local(local_x, local_y);
+             sycl::range<2> global(global_x, global_y);
+             q.submit([&](handler &h) {
+-                h.parallel_for<class MyKernel4>(sycl::nd_range<2>(global, local),[=](sycl::nd_item<2> item) {
++                h.parallel_for<DacOffUpdateUSMK<ImplType>>(sycl::nd_range<2>(global, local),[=](sycl::nd_item<2> item) {
+                     int gx = item.get_global_id(0);
+                     int gy = item.get_global_id(1);
+                     int item_id = gx * global[1] + gy;
+@@ -760,7 +765,7 @@
+             q.submit([&](handler &h) {
+                 auto res = r_buf.template get_access<sycl::access::mode::read_write>(h);
+                 auto myTensor = b_buf.template get_access<sycl::access::mode::read_write>(h);
+-                h.parallel_for<class MyKernel4>(sycl::nd_range<2>(global, local),[=](sycl::nd_item<2> item) {
++                h.parallel_for<DacOffUpdateBufK<ImplType>>(sycl::nd_range<2>(global, local),[=](sycl::nd_item<2> item) {
+                     int gx = item.get_global_id(0);
+                     int gy = item.get_global_id(1);
+                     int item_id = gx * global[1] + gy;

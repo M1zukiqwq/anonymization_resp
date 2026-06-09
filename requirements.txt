@@ -1,0 +1,5 @@
+# Plotting dependencies for the figure scripts (plot_sweep.py and the
+# per-ablation plot_*.py). The host translator and the cluster build are
+# independent of these.
+matplotlib>=3.5
+numpy>=1.21

@@ -1,0 +1,38 @@
+From: operator-residency ablation reproduction
+Subject: Name two unnamed stencil pack/scatter kernels for the vendor SYCL
+
+The legacy path also pulls in StencilExchangeRuntime.h, which launches two
+`parallel_for(...)` kernels without a name. Same fix as DataReconstructor1.h:
+forward-declare unique template-dependent tags and attach them. Behavior
+unchanged. Apply as an overlay header (see DataReconstructor1.h.patch).
+
+--- a/runtime/mpi/stencil/StencilExchangeRuntime.h
++++ b/runtime/mpi/stencil/StencilExchangeRuntime.h
+@@ -14,6 +14,9 @@
+ namespace dacpp {
+ namespace mpi {
+
++template <typename T> class __dacpp_stencil_pack_slots_k0;
++template <typename T> class __dacpp_stencil_scatter_slots_k0;
++
+ template <typename T>
+ inline void pack_values_by_slots_into(const std::vector<T>& local_data,
+                                       const std::vector<int32_t>& local_slots,
+@@ -71,7 +74,7 @@
+             auto local_acc = local_buf.template get_access<sycl::access::mode::read>(h);
+             auto slots_acc = slots_buf.template get_access<sycl::access::mode::read>(h);
+             auto values_acc = values_buf.template get_access<sycl::access::mode::write>(h);
+-            h.parallel_for(sycl::range<1>(values.size()), [=](sycl::id<1> idx) {
++            h.parallel_for<__dacpp_stencil_pack_slots_k0<T>>(sycl::range<1>(values.size()), [=](sycl::id<1> idx) {
+                 const std::size_t i = idx[0];
+                 values_acc[i] = local_acc[static_cast<std::size_t>(slots_acc[i])];
+             });
+@@ -131,7 +134,7 @@
+                 target_slots_buf.template get_access<sycl::access::mode::read>(h);
+             auto target_acc =
+                 target_buf.template get_access<sycl::access::mode::read_write>(h);
+-            h.parallel_for(sycl::range<1>(count), [=](sycl::id<1> idx) {
++            h.parallel_for<__dacpp_stencil_scatter_slots_k0<T>>(sycl::range<1>(count), [=](sycl::id<1> idx) {
+                 const std::size_t i = idx[0];
+                 const int32_t source_slot = source_slots_acc[i];
+                 const int32_t target_slot = target_slots_acc[i];
