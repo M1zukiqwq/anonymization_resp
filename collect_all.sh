@@ -1,5 +1,5 @@
 #!/bin/bash
-# Robust collector for zsp/paper/bin/<v>_<bench>/run_m<m>_n<n>.log
+# Robust collector for $REPRO_ROOT/paper/bin/<v>_<bench>/run_m<m>_n<n>.log
 # Handles all three output formats: total_max= , e2e_max= , e2e_seconds=
 # Emits CSV: variant,benchmark,m,n,ranks,total_s,comm_s,comp_s
 PAPER=$REPRO_ROOT/paper

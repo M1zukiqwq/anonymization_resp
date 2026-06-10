@@ -28,4 +28,4 @@ esac
 case "$AXIS" in
   halo|both) echo "[$base] no resident-halo";       emit no_halo --mpi-no-resident-halo ;;
 esac
-echo "done. scp $OUT/*.cpp to zsp/paper/abl_perf/ then compile+bsub on the cluster."
+echo "done. scp $OUT/*.cpp to $REPRO_ROOT/paper/abl_perf/ then compile+bsub on the cluster."

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Throttled DACPP MPI sweep: at most 2 of MY jobs in the shared queue at any time.
-# Reuses zsp/paper/bin/<variant>_<bench>/a.out and run_m<m>_n<n>.log naming.
+# Reuses $REPRO_ROOT/paper/bin/<variant>_<bench>/a.out and run_m<m>_n<n>.log naming.
 Z=$REPRO_ROOT
 PAPER=$Z/paper
 source $Z/setenv.sh
