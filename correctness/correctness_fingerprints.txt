@@ -1,0 +1,19 @@
+Full-grid FNV-1a fingerprint (+ sum/min/max) of the materialized grid, 512^2 = 262144 elements.
+Single-rank run = no inter-rank communication (sequential reference); 16/64/128 ranks exercise the
+inferred halo. Bit-identical fingerprint across all rank counts => the inferred communication
+preserves every element (value-for-value), not merely at sampled positions.
+
+stencil  (2D direct neighbour-copy halo):
+  ranks=1    [CHK] n=262144 fnv=55cfb88c3bf0cfdc sum=16406.698433038757 min=1.3887943864964021e-11 max=0.99990426352811534
+  ranks=16   [CHK] n=262144 fnv=55cfb88c3bf0cfdc sum=16406.698433038757 min=1.3887943864964021e-11 max=0.99990426352811534
+  ranks=64   [CHK] n=262144 fnv=55cfb88c3bf0cfdc sum=16406.698433038757 min=1.3887943864964021e-11 max=0.99990426352811534
+  ranks=128  [CHK] n=262144 fnv=55cfb88c3bf0cfdc sum=16406.698433038757 min=1.3887943864964021e-11 max=0.99990426352811534
+
+wave     (2D read-cache buffer-swap halo):
+  ranks=1    [CHK] n=262144 fnv=6900a9c0d3871ced sum=-410167.90764896275 min=-33.316963125902944 max=0
+  ranks=16   [CHK] n=262144 fnv=6900a9c0d3871ced sum=-410167.90764896275 min=-33.316963125902944 max=0
+  ranks=64   [CHK] n=262144 fnv=6900a9c0d3871ced sum=-410167.90764896275 min=-33.316963125902944 max=0
+  ranks=128  [CHK] n=262144 fnv=6900a9c0d3871ced sum=-410167.90764896275 min=-33.316963125902944 max=0
+
+=> stencil and wave each show one identical fingerprint across 1/16/64/128 ranks. The two benchmarks
+   cover the two 2-D halo idioms the inference handles: direct neighbour-copy and read-cache buffer swap.
